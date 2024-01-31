@@ -6,6 +6,8 @@ st.title("ChatGPT-like clonwe")
 # Set OpenAI API key from Streamlit secrets
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
+
+
 MODEL = "gpt-3.5-turbo"
 # MODEL = "gpt-3.5-turbo-0613"
 # MODEL = "gpt-3.5-turbo-16k"
