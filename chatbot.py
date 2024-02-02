@@ -1,52 +1,47 @@
 import streamlit as st
+from streamlit_chat import message
+from utils import get_initial_message, get_chatgpt_response, update_chat
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import openai
 
-st.title("ChatGPT-like clonwe")
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
-# Set OpenAI API key from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+st.title("Chatbot : ChatGPT and Streamlit Chat")
+st.subheader("AI Tutor:")
 
+model = st.selectbox(
+    "Select a model",
+    ("gpt-3.5-turbo", "gpt-4")
+)
 
+if 'generated' not in st.session_state:
+    st.session_state['generated'] = []
+if 'past' not in st.session_state:
+    st.session_state['past'] = []
 
-MODEL = "gpt-3.5-turbo"
-# MODEL = "gpt-3.5-turbo-0613"
-# MODEL = "gpt-3.5-turbo-16k"
-# MODEL = "gpt-3.5-turbo-16k-0613"
-#MODEL = "gpt-4"
-#MODEL = "gpt-4-0613"
-#MODEL = "gpt-4-32k-0613"
-# Set a default model
-if "openai_model" not in st.session_state:
-    st.session_state["openai_model"] = MODEL
+query = st.text_input("Query: ", key="input")
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+if 'messages' not in st.session_state:
+    st.session_state['messages'] = get_initial_message()
+ 
+if query:
+    with st.spinner("generating..."):
+        messages = st.session_state['messages']
+        messages = update_chat(messages, "user", query)
+        # st.write("Before  making the API call")
+        # st.write(messages)
+        response = get_chatgpt_response(messages,model)
+        messages = update_chat(messages, "assistant", response)
+        st.session_state.past.append(query)
+        st.session_state.generated.append(response)
+        
+if st.session_state['generated']:
 
-# Display chat messages from history on app rerun
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    for i in range(len(st.session_state['generated'])-1, -1, -1):
+        message(st.session_state['past'][i], is_user=True, key=str(i) + '_user')
+        message(st.session_state["generated"][i], key=str(i))
 
-
-# Accept user input
-if prompt := st.chat_input("What is up?"):
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    # Display user message in chat message container
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    # Display assistant response in chat message container
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
-
-        for response in openai.ChatCompletion.create(
-                model=st.session_state["openai_model"],
-                messages=[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
-                stream=True,
-            ):
-                full_response += response.choices[0].delta.get("content", "")
-                message_placeholder.markdown(full_response + "▌")
-                message_placeholder.markdown(full_response)
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+    with st.expander("Show Messages"):
+        st.write(messages)
