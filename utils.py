@@ -8,7 +8,6 @@ def get_initial_message():
         ]
     return messages
 
-
 def get_chatgpt_response(messages, model="gpt-3.5-turbo"):
     print("model: ", model)
     response = openai.ChatCompletion.create(
